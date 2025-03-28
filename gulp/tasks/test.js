@@ -25,49 +25,61 @@
 
 const UGLIFY = false;
 
-'use strict';
+("use strict");
 
-const Path = require('path');
-const Fs = require('fs');
-const Source = require('vinyl-source-stream');
-const Gulp = require('gulp');
-const Fb = require('gulp-fb');
-const Babel = require('gulp-babel');
-const Buffer = require('vinyl-buffer');
-const HandleErrors = require('../util/handleErrors');
-const Es = require('event-stream');
+const Path = require("path");
+const Fs = require("fs");
+const Source = require("vinyl-source-stream");
+const Gulp = require("gulp");
+const Fb = require("gulp-fb");
+const Babel = require("gulp-babel");
+const Buffer = require("vinyl-buffer");
+const HandleErrors = require("../util/handleErrors");
+const Es = require("event-stream");
 
-const Sourcemaps = require('gulp-sourcemaps');
+const Sourcemaps = require("gulp-sourcemaps");
 
-const Utils = require('../util/utils');
-const createBundler = require('../util/create-bundler');
+const Utils = require("../util/utils");
+const createBundler = require("../util/create-bundler");
 
-exports.build = function (sourceFile, outputFile, sourceFileForExtends, outputFileForExtends, sourcemaps, callback) {
-    var cacheDir = Path.resolve(Path.dirname(outputFile), '.cache/test-compile-cache');
+exports.build = function (
+    sourceFile,
+    outputFile,
+    sourceFileForExtends,
+    outputFileForExtends,
+    sourcemaps,
+    callback
+) {
+    var cacheDir = Path.resolve(
+        Path.dirname(outputFile),
+        ".cache/test-compile-cache"
+    );
     var engine = createBundler(sourceFile, {
         sourcemaps: sourcemaps,
-        cacheDir: cacheDir
+        cacheDir: cacheDir,
     })
         .bundle()
-        .on('error', HandleErrors.handler)
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(Path.basename(outputFile)))
         .pipe(Buffer());
 
     if (UGLIFY) {
         if (sourcemaps) {
-            engine = engine.pipe(Sourcemaps.init({loadMaps: true}));
+            engine = engine.pipe(Sourcemaps.init({ loadMaps: true }));
         }
 
         // remove `...args` used in CC_JSB
-        engine = engine.pipe(Utils.uglify('test'));
+        engine = engine.pipe(Utils.uglify("test"));
 
         if (sourcemaps) {
-            engine = engine.pipe(Sourcemaps.write('./', {
-                sourceRoot: '../',
-                includeContent: false,
-                addComment: true
-            }));
+            engine = engine.pipe(
+                Sourcemaps.write("./", {
+                    sourceRoot: "../",
+                    includeContent: false,
+                    addComment: true,
+                })
+            );
         }
     }
 
@@ -75,95 +87,106 @@ exports.build = function (sourceFile, outputFile, sourceFileForExtends, outputFi
 
     if (Fs.existsSync(sourceFileForExtends)) {
         var engineExtends = createBundler(sourceFileForExtends, {
-                presets: [
-                    [
-                        require('@babel/preset-env'),
-                        {
-                            loose: true,
-                            // bugfixes: true, since babel 7.9
-                            targets: 'PhantomJS 2.1',
-                        }
-                    ],
+            presets: [
+                [
+                    require("@babel/preset-env"),
+                    {
+                        loose: true,
+                        // bugfixes: true, since babel 7.9
+                        targets: "PhantomJS 2.1",
+                    },
                 ],
-                plugins: [
-                    require('@babel/plugin-transform-runtime')
-                ],
-                sourcemaps,
-                cacheDir,
-                bundleExternal: true,
-            })
+            ],
+            plugins: [require("@babel/plugin-transform-runtime")],
+            sourcemaps,
+            cacheDir,
+            bundleExternal: true,
+        })
             .bundle()
-            .on('error', HandleErrors.handler)
+            .on("error", HandleErrors.handler)
             .pipe(HandleErrors())
             .pipe(Source(Path.basename(outputFileForExtends)))
             .pipe(Buffer())
             .pipe(Gulp.dest(Path.dirname(outputFileForExtends)));
-        Es.merge(engine, engineExtends).on('end', callback);
+        Es.merge(engine, engineExtends).on("end", callback);
+    } else {
+        engine.on("end", callback);
     }
-    else {
-        engine.on('end', callback);
-    }
+
+    return engine;
 };
 
 exports.unit = function (outDir, libs, callback) {
-    var title = 'CocosCreator Engine Test Suite';
-    if (Fs.existsSync('./bin/cocos2d-js-extends-for-test.js')) {
-        libs.push('./bin/cocos2d-js-extends-for-test.js');
-        title += ' (Editor Extends Included)';
+    var title = "CocosCreator Engine Test Suite";
+    if (Fs.existsSync("./bin/cocos2d-js-extends-for-test.js")) {
+        libs.push("./bin/cocos2d-js-extends-for-test.js");
+        title += " (Editor Extends Included)";
     }
-    return Gulp.src(['test/qunit/unit-es5/**/*.js', './bin/test/**/*.js'], { read: false, base: './' })
+    return Gulp.src(["test/qunit/unit-es5/**/*.js", "./bin/test/**/*.js"], {
+        read: false,
+        base: "./",
+    })
         .pipe(Fb.toFileList())
-        .pipe(Fb.generateRunner('test/qunit/lib/qunit-runner.html', outDir, title, libs))
+        .pipe(
+            Fb.generateRunner(
+                "test/qunit/lib/qunit-runner.html",
+                outDir,
+                title,
+                libs
+            )
+        )
         .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .on("end", callback);
 };
 
 exports.test = function (callback) {
     var qunit;
     try {
-        qunit = require('gulp-qunit');
+        qunit = require("gulp-qunit");
     } catch (e) {
-        console.error('Please run "npm install gulp-qunit@2.0.1 -g" before running "gulp test".');
+        console.error(
+            'Please run "npm install gulp-qunit@2.0.1 -g" before running "gulp test".'
+        );
         throw e;
     }
-    return Gulp.src('bin/qunit-runner.html')
+    return Gulp.src("bin/qunit-runner.html")
         .pipe(qunit({ timeout: 15 }))
-        .on('end', callback);
+        .on("end", callback);
 };
 
 exports.buildTestCase = function (outDir, callback) {
-    return Gulp.src('test/qunit/unit/**/*.js')
-        .pipe(Babel({
-            presets: [
-                [
-                    require('@babel/preset-env'),
-                    {
-                        "loose": true,
-                        // "bugfixes": true, since babel 7.9
-                        "targets": "PhantomJS 2.1"
-                    }
-                ]
-            ],
-            plugins: [
-                // make sure that transform-decorators-legacy comes before transform-class-properties.
-                [
-                    require('@babel/plugin-proposal-decorators'),
-                    { legacy: true },
+    return Gulp.src("test/qunit/unit/**/*.js")
+        .pipe(
+            Babel({
+                presets: [
+                    [
+                        require("@babel/preset-env"),
+                        {
+                            loose: true,
+                            // "bugfixes": true, since babel 7.9
+                            targets: "PhantomJS 2.1",
+                        },
+                    ],
                 ],
-                [
-                    require('@babel/plugin-proposal-class-properties'),
-                    { loose: true },
+                plugins: [
+                    // make sure that transform-decorators-legacy comes before transform-class-properties.
+                    [
+                        require("@babel/plugin-proposal-decorators"),
+                        { legacy: true },
+                    ],
+                    [
+                        require("@babel/plugin-proposal-class-properties"),
+                        { loose: true },
+                    ],
+                    [require("babel-plugin-add-module-exports")],
                 ],
-                [
-                    require('babel-plugin-add-module-exports'),
-                ],
-            ],
-            ast: false,
-            babelrc: false,
-            highlightCode: false,
-            sourceMap: true,
-            compact: false
-        }))
+                ast: false,
+                babelrc: false,
+                highlightCode: false,
+                sourceMap: true,
+                compact: false,
+            })
+        )
         .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .on("end", callback);
 };

@@ -23,96 +23,103 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-'use strict';
+"use strict";
 
-const Utils = require('../util/utils');
-const createBundler = require('../util/create-bundler');
-const Path = require('path');
-const Fs = require('fs-extra');
+const Utils = require("../util/utils");
+const createBundler = require("../util/create-bundler");
+const Path = require("path");
+const Fs = require("fs-extra");
 
-const Source = require('vinyl-source-stream');
-const Gulp = require('gulp');
-const Buffer = require('vinyl-buffer');
-const Sourcemaps = require('gulp-sourcemaps');
-const EventStream = require('event-stream');
-const Chalk = require('chalk');
-const HandleErrors = require('../util/handleErrors');
-const Optimizejs = require('gulp-optimize-js');
+const Source = require("vinyl-source-stream");
+const Gulp = require("gulp");
+const Buffer = require("vinyl-buffer");
+const Sourcemaps = require("gulp-sourcemaps");
+const EventStream = require("event-stream");
+const Chalk = require("chalk");
+const HandleErrors = require("../util/handleErrors");
+const Optimizejs = require("gulp-optimize-js");
 
-let buildSkipModules = [
-    '../../cocos2d/core/platform/deserialize-editor.js',
-];
+let buildSkipModules = ["../../cocos2d/core/platform/deserialize-editor.js"];
 
 let physicsSkipModules = [
-    '../../cocos2d/core/3d/physics/exports/physics-builtin.ts',
-    '../../cocos2d/core/3d/physics/exports/physics-cannon.ts',
-    '../../cocos2d/core/3d/physics/exports/physics-framework.ts',
-    '../../cocos2d/core/3d/physics/framework/assets/physics-material.ts',
-    '../../external/cannon/cannon.js',
+    "../../cocos2d/core/3d/physics/exports/physics-builtin.ts",
+    "../../cocos2d/core/3d/physics/exports/physics-cannon.ts",
+    "../../cocos2d/core/3d/physics/exports/physics-framework.ts",
+    "../../cocos2d/core/3d/physics/framework/assets/physics-material.ts",
+    "../../external/cannon/cannon.js",
 ];
 
 var jsbSkipModules = [
     // modules need to skip in jsb
-    '../../extensions/spine/skeleton-cache.js',
-    '../../extensions/spine/vertex-effect-delegate.js',
-    '../../extensions/spine/lib/spine.js',
-    '../../extensions/dragonbones/lib/dragonBones.js',
-    '../../extensions/dragonbones/ArmatureCache.js',
-    '../../extensions/dragonbones/CCArmatureDisplay.js',
-    '../../extensions/dragonbones/CCFactory.js',
-    '../../extensions/dragonbones/CCSlot.js',
-    '../../extensions/dragonbones/CCTextureData.js',
+    "../../extensions/spine/skeleton-cache.js",
+    "../../extensions/spine/vertex-effect-delegate.js",
+    "../../extensions/spine/lib/spine.js",
+    "../../extensions/dragonbones/lib/dragonBones.js",
+    "../../extensions/dragonbones/ArmatureCache.js",
+    "../../extensions/dragonbones/CCArmatureDisplay.js",
+    "../../extensions/dragonbones/CCFactory.js",
+    "../../extensions/dragonbones/CCSlot.js",
+    "../../extensions/dragonbones/CCTextureData.js",
 
     // gfx
-    '../../cocos2d/renderer/gfx/device.js',
-    '../../cocos2d/renderer/gfx/enums.js',
-    '../../cocos2d/renderer/gfx/frame-buffer.js',
-    '../../cocos2d/renderer/gfx/index-buffer.js',
-    '../../cocos2d/renderer/gfx/misc.js',
-    '../../cocos2d/renderer/gfx/program.js',
-    '../../cocos2d/renderer/gfx/render-buffer.js',
-    '../../cocos2d/renderer/gfx/state.js',
-    '../../cocos2d/renderer/gfx/texture-2d.js',
-    '../../cocos2d/renderer/gfx/texture-cube.js',
-    '../../cocos2d/renderer/gfx/texture.js',
-    '../../cocos2d/renderer/gfx/vertex-buffer.js',
-    '../../cocos2d/renderer/gfx/vertex-format.js',
+    "../../cocos2d/renderer/gfx/device.js",
+    "../../cocos2d/renderer/gfx/enums.js",
+    "../../cocos2d/renderer/gfx/frame-buffer.js",
+    "../../cocos2d/renderer/gfx/index-buffer.js",
+    "../../cocos2d/renderer/gfx/misc.js",
+    "../../cocos2d/renderer/gfx/program.js",
+    "../../cocos2d/renderer/gfx/render-buffer.js",
+    "../../cocos2d/renderer/gfx/state.js",
+    "../../cocos2d/renderer/gfx/texture-2d.js",
+    "../../cocos2d/renderer/gfx/texture-cube.js",
+    "../../cocos2d/renderer/gfx/texture.js",
+    "../../cocos2d/renderer/gfx/vertex-buffer.js",
+    "../../cocos2d/renderer/gfx/vertex-format.js",
 
     // renderer
-    '../../cocos2d/renderer/core/base-renderer.js',
-    '../../cocos2d/renderer/core/program-lib.js',
-    '../../cocos2d/renderer/core/view.js',
-    '../../cocos2d/renderer/renderers/forward-renderer.js',
-    '../../cocos2d/renderer/scene/camera.js',
-    '../../cocos2d/renderer/scene/light.js',
-    '../../cocos2d/renderer/scene/scene.js',
+    "../../cocos2d/renderer/core/base-renderer.js",
+    "../../cocos2d/renderer/core/program-lib.js",
+    "../../cocos2d/renderer/core/view.js",
+    "../../cocos2d/renderer/renderers/forward-renderer.js",
+    "../../cocos2d/renderer/scene/camera.js",
+    "../../cocos2d/renderer/scene/light.js",
+    "../../cocos2d/renderer/scene/scene.js",
 
     // buffer
-    '../../cocos2d/core/renderer/webgl/model-batcher.js',
-    '../../cocos2d/core/renderer/webgl/spine-buffer.js',
+    "../../cocos2d/core/renderer/webgl/model-batcher.js",
+    "../../cocos2d/core/renderer/webgl/spine-buffer.js",
 ];
 var jsbAliasify = {
     replacements: {
         // '(.*)render-engine(.js)?': require.resolve('../../cocos2d/core/renderer/render-engine.jsb')
     },
-    verbose: false
+    verbose: false,
 };
 
 const WEBVIEW_REGEXP = /[Ww]eb[Vv]iew/;
-function excludedWebView (excludes) {
-    return excludes ? excludes.some(item => /.*CCWebView(\.js)?/.test(item)) : false;
+function excludedWebView(excludes) {
+    return excludes
+        ? excludes.some((item) => /.*CCWebView(\.js)?/.test(item))
+        : false;
 }
 
-exports.buildDebugInfos = require('./buildDebugInfos');
+exports.buildDebugInfos = require("./buildDebugInfos");
 
-exports.buildCocosJs = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildCocosJs = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
     var outDir = Path.dirname(outputFile);
     var outFile = Path.basename(outputFile);
@@ -121,43 +128,63 @@ exports.buildCocosJs = function (sourceFile, outputFile, excludes, opt_macroFlag
     buildSkipModules.concat(physicsSkipModules).forEach(function (file) {
         bundler.exclude(require.resolve(file));
     });
-    excludes && excludes.forEach(function (file) {
-        bundler.exclude(file);
-    });
+    excludes &&
+        excludes.forEach(function (file) {
+            bundler.exclude(file);
+        });
 
     bundler = bundler.bundle();
     bundler = bundler.pipe(Source(outFile));
     bundler = bundler.pipe(Buffer());
 
     if (createMap) {
-        bundler = bundler.pipe(Sourcemaps.init({loadMaps: true}));
+        bundler = bundler.pipe(Sourcemaps.init({ loadMaps: true }));
     }
 
-    bundler = bundler.pipe(Utils.uglify('build', Object.assign({ debug: true }, opt_macroFlags)));
-    bundler = bundler.pipe(Optimizejs({
-        sourceMap: false
-    }));
+    bundler = bundler.pipe(
+        Utils.uglify("build", Object.assign({ debug: true }, opt_macroFlags))
+    );
+    bundler = bundler.pipe(
+        Optimizejs({
+            sourceMap: false,
+        })
+    );
 
     if (createMap) {
-        bundler = bundler.pipe(Sourcemaps.write('./', {
-            sourceRoot: './',
-            includeContent: true,
-            addComment: true
-        }));
+        bundler = bundler.pipe(
+            Sourcemaps.write("./", {
+                sourceRoot: "./",
+                includeContent: true,
+                addComment: true,
+            })
+        );
     }
 
     bundler = bundler.pipe(Gulp.dest(outDir));
-    return bundler.on('end', callback);
+
+    bundler.on("end", () => {
+        console.log("buildCocosJs done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildCocosJsMin = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildCocosJsMin = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
     var outDir = Path.dirname(outputFile);
     var outFile = Path.basename(outputFile);
@@ -166,94 +193,139 @@ exports.buildCocosJsMin = function (sourceFile, outputFile, excludes, opt_macroF
     buildSkipModules.concat(physicsSkipModules).forEach(function (file) {
         bundler.exclude(require.resolve(file));
     });
-    excludes && excludes.forEach(function (file) {
-        bundler.exclude(file);
-    });
+    excludes &&
+        excludes.forEach(function (file) {
+            bundler.exclude(file);
+        });
 
-    bundler.exclude(Path.resolve(__dirname, '../../DebugInfos.json'));
+    bundler.exclude(Path.resolve(__dirname, "../../DebugInfos.json"));
 
     var Size = null;
     try {
-        Size = require('gulp-size');
+        Size = require("gulp-size");
     } catch (error) {
         Size = null;
     }
 
     if (Size) {
-        var rawSize = Size({ gzip: false, pretty: false, showTotal: false, showFiles: false });
-        var zippedSize = Size({ gzip: true, pretty: false, showTotal: false, showFiles: false });
+        var rawSize = Size({
+            gzip: false,
+            pretty: false,
+            showTotal: false,
+            showFiles: false,
+        });
+        var zippedSize = Size({
+            gzip: true,
+            pretty: false,
+            showTotal: false,
+            showFiles: false,
+        });
     }
 
     bundler = bundler.bundle();
     bundler = bundler.pipe(Source(outFile));
     bundler = bundler.pipe(Buffer());
     if (createMap) {
-        console.error('Can not use sourcemap with optimize-js');
-        bundler = bundler.pipe(Sourcemaps.init({loadMaps: true}));
+        console.error("Can not use sourcemap with optimize-js");
+        bundler = bundler.pipe(Sourcemaps.init({ loadMaps: true }));
     }
-    bundler = bundler.pipe(Utils.uglify('build', opt_macroFlags));
-    bundler = bundler.pipe(Optimizejs({
-        sourceMap: false
-    }));
+    bundler = bundler.pipe(Utils.uglify("build", opt_macroFlags));
+    bundler = bundler.pipe(
+        Optimizejs({
+            sourceMap: false,
+        })
+    );
 
     if (Size) {
         bundler = bundler.pipe(rawSize);
         bundler = bundler.pipe(zippedSize);
-        bundler = bundler.pipe(EventStream.through(null, function () {
-            var raw = rawSize.size;
-            var zipped = zippedSize.size;
-            var percent = ((zipped / raw) * 100).toFixed(2);
-            console.log(`Size of ${outputFile}: minimized: ${Chalk.cyan(raw)}B zipped: ${Chalk.cyan(zipped)}B, compression ratio: ${percent}%`);
-            this.emit('end');
-        }));
+        bundler = bundler.pipe(
+            EventStream.through(null, function () {
+                var raw = rawSize.size;
+                var zipped = zippedSize.size;
+                var percent = ((zipped / raw) * 100).toFixed(2);
+                console.log(
+                    `Size of ${outputFile}: minimized: ${Chalk.cyan(
+                        raw
+                    )}B zipped: ${Chalk.cyan(
+                        zipped
+                    )}B, compression ratio: ${percent}%`
+                );
+                this.emit("end");
+            })
+        );
     }
     if (createMap) {
-        bundler = bundler.pipe(Sourcemaps.write('./', {
-            sourceRoot: './',
-            includeContent: true,
-            addComment: true
-        }));
+        bundler = bundler.pipe(
+            Sourcemaps.write("./", {
+                sourceRoot: "./",
+                includeContent: true,
+                addComment: true,
+            })
+        );
     }
     bundler = bundler.pipe(Gulp.dest(outDir));
-    return bundler.on('end', callback);
+
+    bundler.on("end", () => {
+        console.log("buildCocosJsMin done");
+        callback();
+    });
+
+    return bundler;
 };
 
 exports.buildPreview = function (sourceFile, outputFile, callback, devMode) {
-    var cacheDir = devMode && Path.resolve(Path.dirname(outputFile), '.cache/preview-compile-cache');
+    var cacheDir =
+        devMode &&
+        Path.resolve(Path.dirname(outputFile), ".cache/preview-compile-cache");
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
 
     var bundler = createBundler(sourceFile, {
         cacheDir: cacheDir,
-        sourcemaps: !devMode
+        sourcemaps: !devMode,
     });
     // NOTE: no need to exclude physics module for cocos2d-js-preview.js
     var bundler = bundler
         .bundle()
-        .on('error', HandleErrors.handler)
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer());
     if (!devMode) {
         bundler = bundler
-            .pipe(Sourcemaps.init({loadMaps: true}))
-            .pipe(Utils.uglify('preview', {physics_cannon: true}))
-            .pipe(Optimizejs({
-                sourceMap: false
-            }))
-            .pipe(Sourcemaps.write('./', {
-                sourceRoot: '../',
-                includeContent: false,
-                addComment: true
-            }));
+            .pipe(Sourcemaps.init({ loadMaps: true }))
+            .pipe(Utils.uglify("preview", { physics_cannon: true }))
+            .pipe(
+                Optimizejs({
+                    sourceMap: false,
+                })
+            )
+            .pipe(
+                Sourcemaps.write("./", {
+                    sourceRoot: "../",
+                    includeContent: false,
+                    addComment: true,
+                })
+            );
     }
-    bundler
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+
+    bundler = bundler.pipe(Gulp.dest(outDir));
+    bundler.on("end", () => {
+        console.log("buildPreview done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildJsbPreview = function (sourceFile, outputFile, excludes, callback) {
-    var FixJavaScriptCore = require('../util/fix-jsb-javascriptcore');
+exports.buildJsbPreview = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    callback
+) {
+    var FixJavaScriptCore = require("../util/fix-jsb-javascriptcore");
 
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
@@ -265,32 +337,54 @@ exports.buildJsbPreview = function (sourceFile, outputFile, excludes, callback) 
     excludes.forEach(function (module) {
         bundler.exclude(require.resolve(module));
     });
-    bundler.bundle()
-        .on('error', HandleErrors.handler)
+    bundler = bundler
+        .bundle()
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer())
         .pipe(FixJavaScriptCore())
-        .pipe(Utils.uglify('preview', { jsb: true, nativeRenderer: true, physics_cannon: true}))
-        .pipe(Optimizejs({
-            sourceMap: false
-        }))
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .pipe(
+            Utils.uglify("preview", {
+                jsb: true,
+                nativeRenderer: true,
+                physics_cannon: true,
+            })
+        )
+        .pipe(
+            Optimizejs({
+                sourceMap: false,
+            })
+        )
+        .pipe(Gulp.dest(outDir));
+
+    bundler.on("end", () => {
+        console.log("buildJsbPreview done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildJsb = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildJsb = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
 
     let flags = Object.assign({ jsb: true, debug: true }, opt_macroFlags);
-    let macro = Utils.getMacros('build', flags);
+    let macro = Utils.getMacros("build", flags);
     let nativeRenderer = macro["CC_NATIVERENDERER"];
     let needHandleWebview = excludedWebView(excludes);
 
@@ -300,10 +394,10 @@ exports.buildJsb = function (sourceFile, outputFile, excludes, opt_macroFlags, c
     if (needHandleWebview) {
         opts.aliasifyConfig = opts.aliasifyConfig || jsbAliasify;
         // this will replace require call with an empty object
-        opts.aliasifyConfig.replacements['.*CCWebView(\.js)?'] = false;
+        opts.aliasifyConfig.replacements[".*CCWebView(.js)?"] = false;
     }
 
-    var FixJavaScriptCore = require('../util/fix-jsb-javascriptcore');
+    var FixJavaScriptCore = require("../util/fix-jsb-javascriptcore");
 
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
@@ -318,40 +412,56 @@ exports.buildJsb = function (sourceFile, outputFile, excludes, opt_macroFlags, c
     excludes.forEach(function (module) {
         bundler.exclude(require.resolve(module));
     });
-    bundler.bundle()
-        .on('error', HandleErrors.handler)
+    bundler = bundler
+        .bundle()
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer())
         .pipe(FixJavaScriptCore())
-        .pipe(Utils.uglify('build', flags))
-        .pipe(Optimizejs({
-            sourceMap: false
-        }))
-        .on('data', function (file) {
+        .pipe(Utils.uglify("build", flags))
+        .pipe(
+            Optimizejs({
+                sourceMap: false,
+            })
+        )
+        .on("data", function (file) {
             if (needHandleWebview) {
                 let contents = file.contents.toString();
                 if (WEBVIEW_REGEXP.test(contents)) {
-                    throw new Error('WebView field still exists in engine');
+                    throw new Error("WebView field still exists in engine");
                 }
             }
         })
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .pipe(Gulp.dest(outDir));
+
+    bundler.on("end", () => {
+        console.log("buildJsb done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildJsbMin = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildJsbMin = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
 
     let flags = Object.assign({ jsb: true }, opt_macroFlags);
-    let macro = Utils.getMacros('build', flags);
+    let macro = Utils.getMacros("build", flags);
     let nativeRenderer = macro["CC_NATIVERENDERER"];
     let needHandleWebview = excludedWebView(excludes);
 
@@ -361,10 +471,10 @@ exports.buildJsbMin = function (sourceFile, outputFile, excludes, opt_macroFlags
     if (needHandleWebview) {
         opts.aliasifyConfig = opts.aliasifyConfig || jsbAliasify;
         // this will replace require call with an empty object
-        opts.aliasifyConfig.replacements['.*CCWebView(\.js)?'] = false;
+        opts.aliasifyConfig.replacements[".*CCWebView(.js)?"] = false;
     }
 
-    var FixJavaScriptCore = require('../util/fix-jsb-javascriptcore');
+    var FixJavaScriptCore = require("../util/fix-jsb-javascriptcore");
 
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
@@ -380,49 +490,68 @@ exports.buildJsbMin = function (sourceFile, outputFile, excludes, opt_macroFlags
         bundler.exclude(require.resolve(module));
     });
 
-    bundler.exclude(Path.resolve(__dirname, '../../DebugInfos.json'));
+    bundler.exclude(Path.resolve(__dirname, "../../DebugInfos.json"));
 
-    bundler.bundle()
-        .on('error', HandleErrors.handler)
+    bundler = bundler
+        .bundle()
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer())
         .pipe(FixJavaScriptCore())
-        .pipe(Utils.uglify('build', flags))
-        .pipe(Optimizejs({
-            sourceMap: false
-        }))
-        .on('data', function (file) {
+        .pipe(Utils.uglify("build", flags))
+        .pipe(
+            Optimizejs({
+                sourceMap: false,
+            })
+        )
+        .on("data", function (file) {
             if (needHandleWebview) {
                 let contents = file.contents.toString();
                 if (WEBVIEW_REGEXP.test(contents)) {
-                    throw new Error('WebView field still exists in engine');
+                    throw new Error("WebView field still exists in engine");
                 }
             }
         })
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .pipe(Gulp.dest(outDir));
+
+    bundler.on("end", () => {
+        console.log("buildJsbMin done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildRuntime = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildRuntime = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
 
-    let flags = Object.assign({ jsb: false, runtime: true, debug: true }, opt_macroFlags);
-    let macro = Utils.getMacros('build', flags);
+    let flags = Object.assign(
+        { jsb: false, runtime: true, debug: true },
+        opt_macroFlags
+    );
+    let macro = Utils.getMacros("build", flags);
     let nativeRenderer = macro["CC_NATIVERENDERER"];
 
     if (opt_macroFlags && nativeRenderer) {
         opts.aliasifyConfig = jsbAliasify;
     }
 
-    var FixJavaScriptCore = require('../util/fix-jsb-javascriptcore');
+    var FixJavaScriptCore = require("../util/fix-jsb-javascriptcore");
 
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
@@ -435,39 +564,55 @@ exports.buildRuntime = function (sourceFile, outputFile, excludes, opt_macroFlag
         bundler.exclude(require.resolve(module));
     });
 
-    bundler.bundle()
-        .on('error', HandleErrors.handler)
+    bundler = bundler
+        .bundle()
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer())
         .pipe(FixJavaScriptCore())
-        .pipe(Utils.uglify('build', flags))
-        .pipe(Optimizejs({
-            sourceMap: false
-        }))
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .pipe(Utils.uglify("build", flags))
+        .pipe(
+            Optimizejs({
+                sourceMap: false,
+            })
+        )
+        .pipe(Gulp.dest(outDir));
+
+    bundler.on("end", () => {
+        console.log("buildRuntime done");
+        callback();
+    });
+
+    return bundler;
 };
 
-exports.buildRuntimeMin = function (sourceFile, outputFile, excludes, opt_macroFlags, callback, createMap) {
-    if (typeof opt_macroFlags === 'function') {
+exports.buildRuntimeMin = function (
+    sourceFile,
+    outputFile,
+    excludes,
+    opt_macroFlags,
+    callback,
+    createMap
+) {
+    if (typeof opt_macroFlags === "function") {
         callback = opt_macroFlags;
         opt_macroFlags = null;
     }
 
     var opts = {
-        sourcemaps: createMap !== false
+        sourcemaps: createMap !== false,
     };
 
     let flags = Object.assign({ jsb: false, runtime: true }, opt_macroFlags);
-    let macro = Utils.getMacros('build', flags);
+    let macro = Utils.getMacros("build", flags);
     let nativeRenderer = macro["CC_NATIVERENDERER"];
 
     if (opt_macroFlags && nativeRenderer) {
         opts.aliasifyConfig = jsbAliasify;
     }
-    
-    var FixJavaScriptCore = require('../util/fix-jsb-javascriptcore');
+
+    var FixJavaScriptCore = require("../util/fix-jsb-javascriptcore");
 
     var outFile = Path.basename(outputFile);
     var outDir = Path.dirname(outputFile);
@@ -480,26 +625,34 @@ exports.buildRuntimeMin = function (sourceFile, outputFile, excludes, opt_macroF
         bundler.exclude(require.resolve(module));
     });
 
-    bundler.exclude(Path.resolve(__dirname, '../../DebugInfos.json'));
+    bundler.exclude(Path.resolve(__dirname, "../../DebugInfos.json"));
 
-    bundler.bundle()
-        .on('error', HandleErrors.handler)
+    bundler = bundler
+        .bundle()
+        .on("error", HandleErrors.handler)
         .pipe(HandleErrors())
         .pipe(Source(outFile))
         .pipe(Buffer())
         .pipe(FixJavaScriptCore())
-        .pipe(Utils.uglify('build', flags))
-        .pipe(Optimizejs({
-            sourceMap: false
-        }))
-        .pipe(Gulp.dest(outDir))
-        .on('end', callback);
+        .pipe(Utils.uglify("build", flags))
+        .pipe(
+            Optimizejs({
+                sourceMap: false,
+            })
+        )
+        .pipe(Gulp.dest(outDir));
+    bundler.on("end", () => {
+        console.log("buildRuntimeMin done");
+        callback();
+    });
+
+    return bundler;
 };
 
 exports.excludeAllDepends = function (excludedModules) {
-    let modules = Fs.readJsonSync(Path.join(__dirname, '../../modules.json'));
+    let modules = Fs.readJsonSync(Path.join(__dirname, "../../modules.json"));
     if (modules && modules.length > 0) {
-        function _excludeMudules (muduleName) {
+        function _excludeMudules(muduleName) {
             if (excMudules[muduleName]) {
                 return;
             }
@@ -510,8 +663,11 @@ exports.excludeAllDepends = function (excludedModules) {
                 }
             }
 
-            modules.forEach(module => {
-                if (module.dependencies && module.dependencies.indexOf(muduleName) !== -1) {
+            modules.forEach((module) => {
+                if (
+                    module.dependencies &&
+                    module.dependencies.indexOf(muduleName) !== -1
+                ) {
                     _excludeMudules(module.name);
                 }
             });
@@ -527,7 +683,7 @@ exports.excludeAllDepends = function (excludedModules) {
             let module = excMudules[key];
             if (module.entries) {
                 module.entries.forEach(function (file) {
-                    let path = Path.join(__dirname, '..', '..', file);
+                    let path = Path.join(__dirname, "..", "..", file);
                     if (excludes.indexOf(path) === -1) {
                         excludes.push(path);
                     }
@@ -535,8 +691,7 @@ exports.excludeAllDepends = function (excludedModules) {
             }
         }
         return excludes;
-    }
-    else {
+    } else {
         return [];
     }
 };
