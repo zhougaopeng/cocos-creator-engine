@@ -23,10 +23,10 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-const WrapMode = require('./types').WrapMode;
-const { DynamicAnimCurve, quickFindIndex } = require('./animation-curves');
-const sampleMotionPaths = require('./motion-path-helper').sampleMotionPaths;
-const binarySearch = require('../core/utils/binary-search').binarySearchEpsilon;
+const WrapMode = require("./types").WrapMode;
+const { DynamicAnimCurve, quickFindIndex } = require("./animation-curves");
+const sampleMotionPaths = require("./motion-path-helper").sampleMotionPaths;
+const binarySearch = require("../core/utils/binary-search").binarySearchEpsilon;
 
 /**
  * !#en Class for animation data handling.
@@ -35,7 +35,7 @@ const binarySearch = require('../core/utils/binary-search').binarySearchEpsilon;
  * @extends Asset
  */
 var AnimationClip = cc.Class({
-    name: 'cc.AnimationClip',
+    name: "cc.AnimationClip",
     extends: cc.Asset,
 
     properties: {
@@ -51,7 +51,9 @@ var AnimationClip = cc.Class({
          * @type {Number}
          */
         duration: {
-            get: function () { return this._duration; },
+            get: function () {
+                return this._duration;
+            },
         },
 
         /**
@@ -71,7 +73,7 @@ var AnimationClip = cc.Class({
          * @type {Number}
          */
         speed: {
-            default: 1
+            default: 1,
         },
 
         /**
@@ -81,7 +83,7 @@ var AnimationClip = cc.Class({
          * @type {WrapMode}
          */
         wrapMode: {
-            default: WrapMode.Normal
+            default: WrapMode.Normal,
         },
 
         /**
@@ -107,7 +109,7 @@ var AnimationClip = cc.Class({
         events: {
             default: [],
             visible: false,
-        }
+        },
     },
 
     statics: {
@@ -139,33 +141,34 @@ var AnimationClip = cc.Class({
             var step = 1 / clip.sample;
 
             for (var i = 0, l = spriteFrames.length; i < l; i++) {
-                frames[i] = { frame: (i * step), value: spriteFrames[i] };
+                frames[i] = { frame: i * step, value: spriteFrames[i] };
             }
 
             clip.curveData = {
                 comps: {
                     // component
-                    'cc.Sprite': {
+                    "cc.Sprite": {
                         // component properties
-                        'spriteFrame': frames
-                    }
-                }
+                        spriteFrame: frames,
+                    },
+                },
             };
 
             return clip;
-        }
+        },
     },
 
-    onLoad () {
+    onLoad() {
         this._duration = Number.parseFloat(this.duration);
         this.speed = Number.parseFloat(this.speed);
         this.wrapMode = Number.parseInt(this.wrapMode);
         this.frameRate = Number.parseFloat(this.sample);
     },
 
-    createPropCurve (target, propPath, keyframes) {
+    createPropCurve(target, propPath, keyframes) {
         let motionPaths = [];
-        let isMotionPathProp = target instanceof cc.Node && propPath === 'position';
+        let isMotionPathProp =
+            target instanceof cc.Node && propPath === "position";
 
         let curve = new DynamicAnimCurve();
 
@@ -188,16 +191,16 @@ var AnimationClip = cc.Class({
 
             let curveTypes = keyframe.curve;
             if (curveTypes) {
-                if (typeof curveTypes === 'string') {
+                if (typeof curveTypes === "string") {
                     curve.types.push(curveTypes);
                     continue;
-                }
-                else if (Array.isArray(curveTypes)) {
-                    if (curveTypes[0] === curveTypes[1] &&
-                        curveTypes[2] === curveTypes[3]) {
+                } else if (Array.isArray(curveTypes)) {
+                    if (
+                        curveTypes[0] === curveTypes[1] &&
+                        curveTypes[2] === curveTypes[3]
+                    ) {
                         curve.types.push(DynamicAnimCurve.Linear);
-                    }
-                    else {
+                    } else {
                         curve.types.push(DynamicAnimCurve.Bezier(curveTypes));
                     }
                     continue;
@@ -205,9 +208,15 @@ var AnimationClip = cc.Class({
             }
             curve.types.push(DynamicAnimCurve.Linear);
         }
-        
+
         if (isMotionPathProp) {
-            sampleMotionPaths(motionPaths, curve, this.duration, this.sample, target);
+            sampleMotionPaths(
+                motionPaths,
+                curve,
+                this.duration,
+                this.sample,
+                target
+            );
         }
 
         // if every piece of ratios are the same, we can use the quick function to find frame index.
@@ -216,12 +225,11 @@ var AnimationClip = cc.Class({
         let canOptimize = true;
         let EPSILON = 1e-6;
         for (let i = 1, l = ratios.length; i < l; i++) {
-            currRatioDif = ratios[i] - ratios[i-1];
+            currRatioDif = ratios[i] - ratios[i - 1];
             if (i === 1) {
                 lastRatioDif = currRatioDif;
-            }
-            else if (Math.abs(currRatioDif - lastRatioDif) > EPSILON) {
-                canOptimize = false;                
+            } else if (Math.abs(currRatioDif - lastRatioDif) > EPSILON) {
+                canOptimize = false;
                 break;
             }
         }
@@ -231,19 +239,15 @@ var AnimationClip = cc.Class({
         // find the lerp function
         let firstValue = curve.values[0];
         if (firstValue !== undefined && firstValue !== null && !curve._lerp) {
-            if (typeof firstValue === 'number') {
+            if (typeof firstValue === "number") {
                 curve._lerp = DynamicAnimCurve.prototype._lerpNumber;
-            }
-            else if (firstValue instanceof cc.Quat) {
+            } else if (firstValue instanceof cc.Quat) {
                 curve._lerp = DynamicAnimCurve.prototype._lerpQuat;
-            }
-            else if (firstValue instanceof cc.Vec2) {
+            } else if (firstValue instanceof cc.Vec2) {
                 curve._lerp = DynamicAnimCurve.prototype._lerpVector2;
-            }
-            else if (firstValue instanceof cc.Vec3) {
+            } else if (firstValue instanceof cc.Vec3) {
                 curve._lerp = DynamicAnimCurve.prototype._lerpVector3;
-            }
-            else if (firstValue.lerp) {
+            } else if (firstValue.lerp) {
                 curve._lerp = DynamicAnimCurve.prototype._lerpObject;
             }
         }
@@ -251,7 +255,7 @@ var AnimationClip = cc.Class({
         return curve;
     },
 
-    createTargetCurves (target, curveData, curves) {
+    createTargetCurves(target, curveData, curves) {
         let propsData = curveData.props;
         let compsData = curveData.comps;
 
@@ -283,7 +287,7 @@ var AnimationClip = cc.Class({
         }
     },
 
-    createCurves (state, root) {
+    createCurves(state, root) {
         let curveData = this.curveData;
         let childrenCurveDatas = curveData.paths;
         let curves = [];
@@ -302,7 +306,7 @@ var AnimationClip = cc.Class({
         }
 
         return curves;
-    }
+    },
 });
 
 cc.AnimationClip = module.exports = AnimationClip;

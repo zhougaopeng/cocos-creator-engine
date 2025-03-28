@@ -1,15 +1,15 @@
 if (!isPhantomJS) {
-    var libPath = assetDir + '/library';
-    largeModule('AudioScource', {
+    var libPath = assetDir + "/library";
+    largeModule("AudioScource", {
         setup: function () {
             _resetGame();
-            AssetLibrary.init({libraryPath: libPath});
-        }
+            AssetLibrary.init({ libraryPath: libPath });
+        },
     });
 
-    var AUDIO_UUID = '1258a1';
+    var AUDIO_UUID = "1258a1";
 
-    asyncTest('basic test', function () {
+    asyncTest("basic test", function () {
         AssetLibrary.loadAsset(AUDIO_UUID, function (err, clip) {
             var node = new cc.Node();
             cc.director.getScene().addChild(node);
@@ -18,16 +18,32 @@ if (!isPhantomJS) {
             audioSource.clip = clip;
 
             audioSource.play();
-            strictEqual(audioSource.isPlaying, true, 'audio scource play state true after play');
+            strictEqual(
+                audioSource.isPlaying,
+                true,
+                "audio scource play state true after play"
+            );
 
             audioSource.volume = 0.5;
-            strictEqual(audioSource.audio.getVolume(), 0.5, 'audio scource volume after play');
+            strictEqual(
+                audioSource.audio.getVolume(),
+                0.5,
+                "audio scource volume after play"
+            );
 
             audioSource.loop = true;
-            strictEqual(audioSource.audio.getLoop(), true, 'audio scource loop after play');
+            strictEqual(
+                audioSource.audio.getLoop(),
+                true,
+                "audio scource loop after play"
+            );
 
             audioSource.mute = true;
-            strictEqual(audioSource.audio.getVolume(), 0, 'audio scource volume after mute');
+            strictEqual(
+                audioSource.audio.getVolume(),
+                0,
+                "audio scource volume after mute"
+            );
 
             start();
         });
