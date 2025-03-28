@@ -18,6 +18,8 @@ if (!isPhantomJS) {
             audioSource.clip = clip;
 
             audioSource.play();
+
+            console.log("audio playing: ", audioSource.isPlaying);
             strictEqual(
                 audioSource.isPlaying,
                 true,

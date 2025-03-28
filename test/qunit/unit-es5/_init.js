@@ -1,6 +1,6 @@
 ﻿// platform definition
 
-var TestEditorExtends = typeof Editor === 'object' && Editor.serialize;
+var TestEditorExtends = typeof Editor === "object" && Editor.serialize;
 
 // shortcuts
 
@@ -28,7 +28,7 @@ var v2 = cc.v2;
 var color = cc.fireColor;
 
 var TestTexture = cc.Class({
-    name: 'TestTexture',
+    name: "TestTexture",
     extends: cc.Asset,
 
     properties: {
@@ -39,7 +39,7 @@ var TestTexture = cc.Class({
         width: {
             default: 0,
             type: cc.Integer,
-            readonly: true
+            readonly: true,
         },
 
         /**
@@ -49,13 +49,13 @@ var TestTexture = cc.Class({
         height: {
             default: 0,
             type: cc.Integer,
-            readonly: true
+            readonly: true,
         },
-    }
+    },
 });
 
 var TestSprite = cc.Class({
-    name: 'TestSprite',
+    name: "TestSprite",
     extends: cc.Asset,
     properties: {
         pivot: new cc.Vec2(0.5, 0.5),
@@ -81,40 +81,40 @@ var TestSprite = cc.Class({
         rotatedWidth: {
             get: function () {
                 return this.rotated ? this.height : this.width;
-            }
+            },
         },
         rotatedHeight: {
             get: function () {
                 return this.rotated ? this.width : this.height;
-            }
-        }
-    }
+            },
+        },
+    },
 });
 
 var TestScript = cc.Class({
-    name: 'TestScript',
+    name: "TestScript",
     extends: cc.Component,
     properties: {
         target: {
             default: null,
-            type: cc.Node
+            type: cc.Node,
         },
         target2: {
             default: null,
-            type: cc.Node
+            type: cc.Node,
         },
-    }
+    },
 });
 
 var TestDependency = cc.Class({
-    name: 'TestDependency',
+    name: "TestDependency",
     extends: cc.Asset,
     properties: {
         dependency: {
             default: null,
             type: TestDependency,
-        }
-    }
+        },
+    },
 });
 
 // mocks to test engine extends
@@ -123,16 +123,16 @@ cc.engine = new (cc.Class({
     extends: cc.EventTarget,
     properties: {
         attachedObjsForEditor: {
-            default: {}
+            default: {},
         },
     },
     getInstanceById: function (uuid) {
         return this.attachedObjsForEditor[uuid] || null;
-    }
+    },
 }))();
 
 (function () {
-    function beFalse () {
+    function beFalse() {
         return false;
     }
 
@@ -157,30 +157,35 @@ Editor.warn = cc.warn;
 Editor.error = cc.error;
 Editor.Utils = Editor.Utils || {
     UuidUtils: {
-        uuid: function () { return '' + Math.floor(Math.random() * 100000000) + Math.floor(Math.random() * 100000000); }
-    }
+        uuid: function () {
+            return (
+                "" +
+                Math.floor(Math.random() * 100000000) +
+                Math.floor(Math.random() * 100000000)
+            );
+        },
+    },
 };
 Editor.Utils.UuidCache = {};
 
-var assetDir = '../test/qunit/assets';
+var assetDir = "../test/qunit/assets";
 
 var canvas;
-function _resetGame (w, h) {
+function _resetGame(w, h) {
     if (!cc.game._prepared) {
         if (!canvas) {
-            canvas = document.createElement('canvas');
-            canvas.id = 'test-canvas';
+            canvas = document.createElement("canvas");
+            canvas.id = "test-canvas";
             document.body.appendChild(canvas);
         }
         cc.game.run({
             width: w,
             height: h,
-            id: 'test-canvas',
-            debugMode: cc.debug.DebugMode.INFO
+            id: "test-canvas",
+            debugMode: cc.debug.DebugMode.INFO,
         });
         cc.debug.setDisplayStats(false);
-    }
-    else {
+    } else {
         var view = cc.view;
 
         cc.game.canvas.width = w * view.getDevicePixelRatio();
@@ -208,9 +213,13 @@ function _resetGame (w, h) {
         cc.game.container.style.height = h;
 
         var size = view.getDesignResolutionSize();
-        view.setDesignResolutionSize(size.width, size.height, cc.ResolutionPolicy.SHOW_ALL);
+        view.setDesignResolutionSize(
+            size.width,
+            size.height,
+            cc.ResolutionPolicy.SHOW_ALL
+        );
 
-        cc.view.emit('canvas-resize');
+        cc.view.emit("canvas-resize");
     }
     // Forbid render in test
     cc.renderer.render = function () {};
@@ -237,57 +246,61 @@ var SetupEngine = {
         cc.game.pause();
         // check error
         // cc._Test.SceneGraphUtils.checkMatchCurrentScene();
-    }
+    },
 };
 
 QUnit.config.testTimeout = 5000;
 
 // force stop to ensure start will only called once
-function asyncEnd () {
+function asyncEnd() {
     cc.game.pause();
     //Engine.tick = function () {};
     //Engine.tickInEditMode = function () {};
     start();
 }
 
-function fastArrayEqual (actual, expected, message) {
+function fastArrayEqual(actual, expected, message) {
     var hasError = false;
     if (hasError) {
         if (actual.length !== expected.length) {
-            strictEqual(actual.length, expected.length, message + ' (array length should equal)');
+            strictEqual(
+                actual.length,
+                expected.length,
+                message + " (array length should equal)"
+            );
         }
         for (var i = 0; i < expected.length; i++) {
-            ok(actual[i] === expected[i], message + ' (element ' + i + ' should equal)');
+            ok(
+                actual[i] === expected[i],
+                message + " (element " + i + " should equal)"
+            );
         }
-    }
-    else {
+    } else {
         deepEqual(actual, expected, message);
     }
 }
 
-function createNodes (data) {
+function createNodes(data) {
     var nodes = {
         attachToScene: function () {
             this.root.parent = cc.director.getScene();
-        }
+        },
     };
-    function createNode (data, name) {
+    function createNode(data, name) {
         var node = new cc.Node();
         node.name = name;
         for (var key in data) {
             var value = data[key];
-            if (key === 'comps') {
+            if (key === "comps") {
                 if (Array.isArray(value)) {
                     for (var i = 0; i < value.length; i++) {
                         node.addComponent(value[i]);
                     }
-                }
-                else {
+                } else {
                     node.addComponent(value);
                 }
-                nodes[name + 'Comps'] = node._components.slice();
-            }
-            else if (typeof value === 'object') {
+                nodes[name + "Comps"] = node._components.slice();
+            } else if (typeof value === "object") {
                 var child = createNode(value, key);
                 child.parent = node;
             }
@@ -295,7 +308,7 @@ function createNodes (data) {
         nodes[name] = node;
         return node;
     }
-    createNode(data, 'root');
+    createNode(data, "root");
     return nodes;
 }
 
