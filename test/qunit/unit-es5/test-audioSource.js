@@ -18,34 +18,37 @@ if (!isPhantomJS) {
             audioSource.clip = clip;
 
             audioSource.play();
+            // play is async
 
-            console.log("audio playing: ", audioSource.isPlaying);
-            strictEqual(
-                audioSource.isPlaying,
-                true,
-                "audio scource play state true after play"
-            );
+            clip.once("load", function () {
+                console.log("audio playing: ", audioSource.isPlaying);
+                strictEqual(
+                    audioSource.isPlaying,
+                    true,
+                    "audio scource play state true after play"
+                );
 
-            audioSource.volume = 0.5;
-            strictEqual(
-                audioSource.audio.getVolume(),
-                0.5,
-                "audio scource volume after play"
-            );
+                audioSource.volume = 0.5;
+                strictEqual(
+                    audioSource.audio.getVolume(),
+                    0.5,
+                    "audio scource volume after play"
+                );
 
-            audioSource.loop = true;
-            strictEqual(
-                audioSource.audio.getLoop(),
-                true,
-                "audio scource loop after play"
-            );
+                audioSource.loop = true;
+                strictEqual(
+                    audioSource.audio.getLoop(),
+                    true,
+                    "audio scource loop after play"
+                );
 
-            audioSource.mute = true;
-            strictEqual(
-                audioSource.audio.getVolume(),
-                0,
-                "audio scource volume after mute"
-            );
+                audioSource.mute = true;
+                strictEqual(
+                    audioSource.audio.getVolume(),
+                    0,
+                    "audio scource volume after mute"
+                );
+            });
 
             start();
         });
