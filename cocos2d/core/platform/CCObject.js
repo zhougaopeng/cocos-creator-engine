@@ -23,8 +23,8 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-var js = require('./js');
-var CCClass = require('./CCClass');
+var js = require("./js");
+var CCClass = require("./CCClass");
 
 // definitions for CCObject.Flags
 
@@ -56,11 +56,27 @@ var IsPositionLocked = 1 << 21;
 
 // var Hide = HideInGame | HideInHierarchy;
 // should not clone or serialize these flags
-var PersistentMask = ~(ToDestroy | Dirty | Destroying | DontDestroy | Deactivating |
-                       IsPreloadStarted | IsOnLoadStarted | IsOnLoadCalled | IsStartCalled |
-                       IsOnEnableCalled | IsEditorOnEnableCalled |
-                       IsRotationLocked | IsScaleLocked | IsAnchorLocked | IsSizeLocked | IsPositionLocked
-                       /*RegisteredInEditor*/);
+var PersistentMask = ~(
+    (
+        ToDestroy |
+        Dirty |
+        Destroying |
+        DontDestroy |
+        Deactivating |
+        IsPreloadStarted |
+        IsOnLoadStarted |
+        IsOnLoadCalled |
+        IsStartCalled |
+        IsOnEnableCalled |
+        IsEditorOnEnableCalled |
+        IsRotationLocked |
+        IsScaleLocked |
+        IsAnchorLocked |
+        IsSizeLocked |
+        IsPositionLocked
+    )
+    /*RegisteredInEditor*/
+);
 
 /**
  * The base class of most of all the objects in Fireball.
@@ -69,13 +85,13 @@ var PersistentMask = ~(ToDestroy | Dirty | Destroying | DontDestroy | Deactivati
  * @main
  * @private
  */
-function CCObject () {
+function CCObject() {
     /**
      * @property {String} _name
      * @default ""
      * @private
      */
-    this._name = '';
+    this._name = "";
 
     /**
      * @property {Number} _objFlags
@@ -84,7 +100,7 @@ function CCObject () {
      */
     this._objFlags = 0;
 }
-CCClass.fastDefine('cc.Object', CCObject, { _name: '', _objFlags: 0 });
+CCClass.fastDefine("cc.Object", CCObject, { _name: "", _objFlags: 0 });
 
 /**
  * Bit mask that controls object states.
@@ -92,8 +108,7 @@ CCClass.fastDefine('cc.Object', CCObject, { _name: '', _objFlags: 0 });
  * @static
  * @private
  */
-js.value(CCObject, 'Flags', {
-
+js.value(CCObject, "Flags", {
     Destroyed,
     //ToDestroy: ToDestroy,
 
@@ -138,7 +153,7 @@ js.value(CCObject, 'Flags', {
     /**
      * !#en The lock node, when the node is locked, cannot be clicked in the scene.
      * !#zh 锁定节点，锁定后场景内不能点击。
-     * 
+     *
      * @property LockedInEditor
      * @private
      */
@@ -193,7 +208,7 @@ js.value(CCObject, 'Flags', {
 
 var objectsToDestroy = [];
 
-function deferredDestroy () {
+function deferredDestroy() {
     var deleteCount = objectsToDestroy.length;
     for (var i = 0; i < deleteCount; ++i) {
         var obj = objectsToDestroy[i];
@@ -205,8 +220,7 @@ function deferredDestroy () {
     // but we only destroy the objects which called destroy in this frame.
     if (deleteCount === objectsToDestroy.length) {
         objectsToDestroy.length = 0;
-    }
-    else {
+    } else {
         objectsToDestroy.splice(0, deleteCount);
     }
 
@@ -215,10 +229,10 @@ function deferredDestroy () {
     }
 }
 
-js.value(CCObject, '_deferredDestroy', deferredDestroy);
+js.value(CCObject, "_deferredDestroy", deferredDestroy);
 
 if (CC_EDITOR) {
-    js.value(CCObject, '_clearDeferredDestroyTimer', function () {
+    js.value(CCObject, "_clearDeferredDestroyTimer", function () {
         if (deferredDestroyTimer !== null) {
             clearImmediate(deferredDestroyTimer);
             deferredDestroyTimer = null;
@@ -242,7 +256,9 @@ var prototype = CCObject.prototype;
  * @example
  * obj.name = "New Obj";
  */
-js.getset(prototype, 'name',
+js.getset(
+    prototype,
+    "name",
     function () {
         return this._name;
     },
@@ -275,12 +291,17 @@ js.getset(prototype, 'name',
  * // after a frame...
  * cc.log(node.isValid);    // false, destroyed in the end of last frame
  */
-js.get(prototype, 'isValid', function () {
-    return !(this._objFlags & Destroyed);
-}, true);
+js.get(
+    prototype,
+    "isValid",
+    function () {
+        return !(this._objFlags & Destroyed);
+    },
+    true
+);
 
 if (CC_EDITOR || CC_TEST) {
-    js.get(prototype, 'isRealValid', function () {
+    js.get(prototype, "isRealValid", function () {
         return !(this._objFlags & RealDestroyed);
     });
 }
@@ -313,7 +334,12 @@ prototype.destroy = function () {
     this._objFlags |= ToDestroy;
     objectsToDestroy.push(this);
 
-    if (CC_EDITOR && deferredDestroyTimer === null && cc.engine && ! cc.engine._isUpdating) {
+    if (
+        CC_EDITOR &&
+        deferredDestroyTimer === null &&
+        cc.engine &&
+        !cc.engine._isUpdating
+    ) {
         // auto destroy immediate in edit mode
         deferredDestroyTimer = setImmediate(deferredDestroy);
     }
@@ -332,7 +358,7 @@ if (CC_EDITOR || CC_TEST) {
      * @private
      */
     prototype.realDestroyInEditor = function () {
-        if ( !(this._objFlags & Destroyed) ) {
+        if (!(this._objFlags & Destroyed)) {
             cc.warnID(5001);
             return;
         }
@@ -345,22 +371,24 @@ if (CC_EDITOR || CC_TEST) {
     };
 }
 
-function compileDestruct (obj, ctor) {
-    var shouldSkipId = obj instanceof cc._BaseNode || obj instanceof cc.Component;
-    var idToSkip = shouldSkipId ? '_id' : null;
+function compileDestruct(obj, ctor) {
+    var shouldSkipId =
+        obj instanceof cc._BaseNode || obj instanceof cc.Component;
+    var idToSkip = shouldSkipId ? "_id" : null;
 
-    var key, propsToReset = {};
+    var key,
+        propsToReset = {};
     for (key in obj) {
         if (obj.hasOwnProperty(key)) {
             if (key === idToSkip) {
                 continue;
             }
             switch (typeof obj[key]) {
-                case 'string':
-                    propsToReset[key] = '';
+                case "string":
+                    propsToReset[key] = "";
                     break;
-                case 'object':
-                case 'function':
+                case "object":
+                case "function":
                     propsToReset[key] = null;
                     break;
             }
@@ -372,20 +400,20 @@ function compileDestruct (obj, ctor) {
         var propList = ctor.__props__;
         for (var i = 0; i < propList.length; i++) {
             key = propList[i];
-            var attrKey = key + cc.Class.Attr.DELIMETER + 'default';
+            var attrKey = key + cc.Class.Attr.DELIMETER + "default";
             if (attrKey in attrs) {
-                if (shouldSkipId && key === '_id') {
+                if (shouldSkipId && key === "_id") {
                     continue;
                 }
                 switch (typeof attrs[attrKey]) {
-                    case 'string':
-                        propsToReset[key] = '';
+                    case "string":
+                        propsToReset[key] = "";
                         break;
-                    case 'object':
-                    case 'function':
+                    case "object":
+                    case "function":
                         propsToReset[key] = null;
                         break;
-                    case 'undefined':
+                    case "undefined":
                         propsToReset[key] = undefined;
                         break;
                 }
@@ -395,24 +423,22 @@ function compileDestruct (obj, ctor) {
 
     if (CC_SUPPORT_JIT) {
         // compile code
-        var func = '';
+        var func = "";
         for (key in propsToReset) {
             var statement;
             if (CCClass.IDENTIFIER_RE.test(key)) {
-                statement = 'o.' + key + '=';
-            }
-            else {
-                statement = 'o[' + CCClass.escapeForJS(key) + ']=';
+                statement = "o." + key + "=";
+            } else {
+                statement = "o[" + CCClass.escapeForJS(key) + "]=";
             }
             var val = propsToReset[key];
-            if (val === '') {
+            if (val === "") {
                 val = '""';
             }
-            func += (statement + val + ';\n');
+            func += statement + val + ";\n";
         }
-        return Function('o', func);
-    }
-    else {
+        return Function("o", func);
+    } else {
         return function (o) {
             for (var key in propsToReset) {
                 o[key] = propsToReset[key];
@@ -445,9 +471,9 @@ function compileDestruct (obj, ctor) {
  * ```
  * !#zh
  * 清除实例中的所有引用。
- * 
+ *
  * 注意：此方法不会清除在 `CCObject` 实例中定义的 `getter` 或 `setter`。如果需要，你可以重写 `_destruct` 方法。例如：
- * 
+ *
  * ```js
  * _destruct: function () {
  *     for (var key in this) {
@@ -472,7 +498,7 @@ prototype._destruct = function () {
     var destruct = ctor.__destruct__;
     if (!destruct) {
         destruct = compileDestruct(this, ctor);
-        js.value(ctor, '__destruct__', destruct, true);
+        js.value(ctor, "__destruct__", destruct, true);
     }
     destruct(this);
 };
@@ -487,19 +513,19 @@ prototype._destruct = function () {
  */
 prototype._onPreDestroy = null;
 
-prototype._destroyImmediate = function () {
+prototype._destroyImmediate = function (clear) {
     if (this._objFlags & Destroyed) {
         cc.errorID(5000);
         return;
     }
     // engine internal callback
     if (this._onPreDestroy) {
-        this._onPreDestroy();
+        this._onPreDestroy(clear);
     }
 
-    if ((CC_TEST ? (/* make CC_EDITOR mockable*/ Function('return !CC_EDITOR'))() : !CC_EDITOR) || cc.engine._isPlaying) {
-        this._destruct();
-    }
+    // if ((CC_TEST ? (/* make CC_EDITOR mockable*/ Function('return !CC_EDITOR'))() : !CC_EDITOR) || cc.engine._isPlaying) {
+    //     this._destruct();
+    // }
 
     this._objFlags |= Destroyed;
 };
@@ -559,19 +585,24 @@ prototype._deserialize = null;
  * cc.log(cc.isValid(node));    // false, destroyed in the end of last frame
  */
 cc.isValid = function (value, strictMode) {
-    if (typeof value === 'object') {
-        return !!value && !(value._objFlags & (strictMode ? (Destroyed | ToDestroy) : Destroyed));
-    }
-    else {
-        return typeof value !== 'undefined';
+    if (typeof value === "object") {
+        return (
+            !!value &&
+            !(
+                value._objFlags &
+                (strictMode ? Destroyed | ToDestroy : Destroyed)
+            )
+        );
+    } else {
+        return typeof value !== "undefined";
     }
 };
 
 if (CC_EDITOR || CC_TEST) {
-    js.value(CCObject, '_willDestroy', function (obj) {
+    js.value(CCObject, "_willDestroy", function (obj) {
         return !(obj._objFlags & Destroyed) && (obj._objFlags & ToDestroy) > 0;
     });
-    js.value(CCObject, '_cancelDestroy', function (obj) {
+    js.value(CCObject, "_cancelDestroy", function (obj) {
         obj._objFlags &= ~ToDestroy;
         js.array.fastRemove(objectsToDestroy, obj);
     });

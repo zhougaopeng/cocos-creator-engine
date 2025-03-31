@@ -24,9 +24,9 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-var CCObject = require('../platform/CCObject');
-var js = require('../platform/js');
-var idGenerater = new (require('../platform/id-generater'))('Comp');
+var CCObject = require("../platform/CCObject");
+var js = require("../platform/js");
+var idGenerater = new (require("../platform/id-generater"))("Comp");
 
 var IsOnEnableCalled = CCObject.Flags.IsOnEnableCalled;
 var IsOnLoadCalled = CCObject.Flags.IsOnLoadCalled;
@@ -48,30 +48,32 @@ var ActionManagerExist = !!cc.ActionManager;
  * @extends Object
  */
 var Component = cc.Class({
-    name: 'cc.Component',
+    name: "cc.Component",
     extends: CCObject,
 
-    ctor: CC_EDITOR ? function () {
-        if ((typeof _Scene !== "undefined") && _Scene.AssetsWatcher) {
-            _Scene.AssetsWatcher.initComponent(this);
-        }
-        this._id = Editor.Utils.UuidUtils.uuid();
+    ctor: CC_EDITOR
+        ? function () {
+              if (typeof _Scene !== "undefined" && _Scene.AssetsWatcher) {
+                  _Scene.AssetsWatcher.initComponent(this);
+              }
+              this._id = Editor.Utils.UuidUtils.uuid();
 
-        /**
-         * !#en
-         * Register all related EventTargets,
-         * all event callbacks will be removed in `_onPreDestroy`.
-         * !#zh
-         * 注册所有相关的 EventTargets，所有事件回调将在 `_onPreDestroy` 中删除。
-         * @property {Array} __eventTargets
-         * @private
-         */
-        this.__eventTargets = [];
-    } : function () {
-        this._id = idGenerater.getNewId();
+              /**
+               * !#en
+               * Register all related EventTargets,
+               * all event callbacks will be removed in `_onPreDestroy`.
+               * !#zh
+               * 注册所有相关的 EventTargets，所有事件回调将在 `_onPreDestroy` 中删除。
+               * @property {Array} __eventTargets
+               * @private
+               */
+              this.__eventTargets = [];
+          }
+        : function () {
+              this._id = idGenerater.getNewId();
 
-        this.__eventTargets = [];
-    },
+              this.__eventTargets = [];
+          },
 
     properties: {
         /**
@@ -84,25 +86,25 @@ var Component = cc.Class({
          */
         node: {
             default: null,
-            visible: false
+            visible: false,
         },
 
         name: {
-            get () {
+            get() {
                 if (this._name) {
                     return this._name;
                 }
                 var className = cc.js.getClassName(this);
-                var trimLeft = className.lastIndexOf('.');
+                var trimLeft = className.lastIndexOf(".");
                 if (trimLeft >= 0) {
                     className = className.slice(trimLeft + 1);
                 }
-                return this.node.name + '<' + className + '>';
+                return this.node.name + "<" + className + ">";
             },
-            set (value) {
+            set(value) {
                 this._name = value;
             },
-            visible: false
+            visible: false,
         },
 
         /**
@@ -115,14 +117,14 @@ var Component = cc.Class({
          * cc.log(comp.uuid);
          */
         uuid: {
-            get () {
+            get() {
                 return this._id;
             },
-            visible: false
+            visible: false,
         },
 
         __scriptAsset: CC_EDITOR && {
-            get () {},
+            get() {},
             //set (value) {
             //    if (this.__scriptUuid !== value) {
             //        if (value && Editor.Utils.UuidUtils.isUuid(value._uuid)) {
@@ -141,9 +143,9 @@ var Component = cc.Class({
             //        }
             //    }
             //},
-            displayName: 'Script',
+            displayName: "Script",
             type: cc._Script,
-            tooltip: CC_DEV && 'i18n:INSPECTOR.component.script'
+            tooltip: CC_DEV && "i18n:INSPECTOR.component.script",
         },
 
         /**
@@ -164,25 +166,24 @@ var Component = cc.Class({
          * cc.log(comp.enabled);
          */
         enabled: {
-            get () {
+            get() {
                 return this._enabled;
             },
-            set (value) {
+            set(value) {
                 if (this._enabled !== value) {
                     this._enabled = value;
                     if (this.node._activeInHierarchy) {
                         var compScheduler = cc.director._compScheduler;
                         if (value) {
                             compScheduler.enableComp(this);
-                        }
-                        else {
+                        } else {
                             compScheduler.disableComp(this);
                         }
                     }
                 }
             },
             visible: false,
-            animatable: true
+            animatable: true,
         },
 
         /**
@@ -195,14 +196,20 @@ var Component = cc.Class({
          * cc.log(comp.enabledInHierarchy);
          */
         enabledInHierarchy: {
-            get () {
+            get() {
                 if (CC_EDITOR) {
                     // _activeInHierarchy will not be updated before node's onRestore
-                    return this._enabled && this.node?._active && this.node?._parent?._activeInHierarchy;
+                    return (
+                        this._enabled &&
+                        this.node?._active &&
+                        this.node?._parent?._activeInHierarchy
+                    );
                 }
-                return this._enabled && this.node && this.node._activeInHierarchy;
+                return (
+                    this._enabled && this.node && this.node._activeInHierarchy
+                );
             },
-            visible: false
+            visible: false,
         },
 
         /**
@@ -215,9 +222,9 @@ var Component = cc.Class({
          * cc.log(this._isOnLoadCalled > 0);
          */
         _isOnLoadCalled: {
-            get () {
+            get() {
                 return this._objFlags & IsOnLoadCalled;
-            }
+            },
         },
     },
 
@@ -349,7 +356,7 @@ var Component = cc.Class({
      * addComponent<T extends Component>(type: {new(): T}): T
      * addComponent(className: string): any
      */
-    addComponent (typeOrClassName) {
+    addComponent(typeOrClassName) {
         return this.node.addComponent(typeOrClassName);
     },
 
@@ -373,7 +380,7 @@ var Component = cc.Class({
      * getComponent<T extends Component>(type: {prototype: T}): T
      * getComponent(className: string): any
      */
-    getComponent (typeOrClassName) {
+    getComponent(typeOrClassName) {
         return this.node.getComponent(typeOrClassName);
     },
 
@@ -391,7 +398,7 @@ var Component = cc.Class({
      * getComponents<T extends Component>(type: {prototype: T}): T[]
      * getComponents(className: string): any[]
      */
-    getComponents (typeOrClassName) {
+    getComponents(typeOrClassName) {
         return this.node.getComponents(typeOrClassName);
     },
 
@@ -409,7 +416,7 @@ var Component = cc.Class({
      * getComponentInChildren<T extends Component>(type: {prototype: T}): T
      * getComponentInChildren(className: string): any
      */
-    getComponentInChildren (typeOrClassName) {
+    getComponentInChildren(typeOrClassName) {
         return this.node.getComponentInChildren(typeOrClassName);
     },
 
@@ -427,7 +434,7 @@ var Component = cc.Class({
      * getComponentsInChildren<T extends Component>(type: {prototype: T}): T[]
      * getComponentsInChildren(className: string): any[]
      */
-    getComponentsInChildren (typeOrClassName) {
+    getComponentsInChildren(typeOrClassName) {
         return this.node.getComponentsInChildren(typeOrClassName);
     },
 
@@ -485,12 +492,15 @@ var Component = cc.Class({
 
     // OVERRIDE
 
-    destroy () {
+    destroy() {
         if (CC_EDITOR) {
             var depend = this.node._getDependComponent(this);
             if (depend) {
-                return cc.errorID(3626,
-                    cc.js.getClassName(this), cc.js.getClassName(depend));
+                return cc.errorID(
+                    3626,
+                    cc.js.getClassName(this),
+                    cc.js.getClassName(depend)
+                );
             }
         }
         if (this._super()) {
@@ -500,7 +510,7 @@ var Component = cc.Class({
         }
     },
 
-    _onPreDestroy () {
+    _onPreDestroy(clear) {
         if (ActionManagerExist) {
             cc.director.getActionManager().removeAllActionsFromTarget(this);
         }
@@ -525,10 +535,12 @@ var Component = cc.Class({
         cc.director._nodeActivator.destroyComp(this);
 
         // do remove component
-        this.node._removeComponent(this);
+        if (clear !== false) {
+            this.node._removeComponent(this);
+        }
     },
 
-    _instantiate (cloned) {
+    _instantiate(cloned) {
         if (!cloned) {
             cloned = cc.instantiate._clone(this, this);
         }
@@ -536,7 +548,7 @@ var Component = cc.Class({
         return cloned;
     },
 
-// Scheduler
+    // Scheduler
 
     /**
      * !#en
@@ -556,7 +568,7 @@ var Component = cc.Class({
      * }
      * this.schedule(timeCallback, 1);
      */
-    schedule (callback, interval, repeat, delay) {
+    schedule(callback, interval, repeat, delay) {
         cc.assertID(callback, 1619);
 
         interval = interval || 0;
@@ -589,7 +601,7 @@ var Component = cc.Class({
      * }
      * this.scheduleOnce(timeCallback, 2);
      */
-    scheduleOnce (callback, delay) {
+    scheduleOnce(callback, delay) {
         this.schedule(callback, 0, 0, delay);
     },
 
@@ -602,9 +614,8 @@ var Component = cc.Class({
      * @example
      * this.unschedule(_callback);
      */
-    unschedule (callback_fn) {
-        if (!callback_fn)
-            return;
+    unschedule(callback_fn) {
+        if (!callback_fn) return;
 
         cc.director.getScheduler().unschedule(callback_fn, this);
     },
@@ -618,7 +629,7 @@ var Component = cc.Class({
      * @example
      * this.unscheduleAllCallbacks();
      */
-    unscheduleAllCallbacks () {
+    unscheduleAllCallbacks() {
         cc.director.getScheduler().unscheduleAllForTarget(this);
     },
 });
@@ -628,18 +639,17 @@ Component._executionOrder = 0;
 if (CC_EDITOR && CC_PREVIEW) Component._disallowMultiple = null;
 
 if (CC_EDITOR || CC_TEST) {
-
     // INHERITABLE STATIC MEMBERS
 
     Component._executeInEditMode = false;
     Component._playOnFocus = false;
-    Component._help = '';
+    Component._help = "";
 
     // NON-INHERITED STATIC MEMBERS
     // (TypeScript 2.3 will still inherit them, so always check hasOwnProperty before using)
 
-    js.value(Component, '_inspector', '', true);
-    js.value(Component, '_icon', '', true);
+    js.value(Component, "_inspector", "", true);
+    js.value(Component, "_icon", "", true);
 
     // COMPONENT HELPERS
 
@@ -649,22 +659,22 @@ if (CC_EDITOR || CC_TEST) {
         cc._componentMenuItems.push({
             component: cls,
             menuPath: path,
-            priority: priority
+            priority: priority,
         });
     };
 }
 
 // We make this non-enumerable, to prevent inherited by sub classes.
-js.value(Component, '_registerEditorProps', function (cls, props) {
+js.value(Component, "_registerEditorProps", function (cls, props) {
     var reqComp = props.requireComponent;
     if (reqComp) {
         cls._requireComponent = reqComp;
     }
     var order = props.executionOrder;
-    if (order && typeof order === 'number') {
+    if (order && typeof order === "number") {
         cls._executionOrder = order;
     }
-    if ((CC_EDITOR || CC_PREVIEW) && 'disallowMultiple' in props) {
+    if ((CC_EDITOR || CC_PREVIEW) && "disallowMultiple" in props) {
         cls._disallowMultiple = cls;
     }
     if (CC_EDITOR || CC_TEST) {
@@ -672,41 +682,43 @@ js.value(Component, '_registerEditorProps', function (cls, props) {
         for (var key in props) {
             var val = props[key];
             switch (key) {
-                case 'executeInEditMode':
+                case "executeInEditMode":
                     cls._executeInEditMode = !!val;
                     break;
 
-                case 'playOnFocus':
+                case "playOnFocus":
                     if (val) {
-                        var willExecuteInEditMode = ('executeInEditMode' in props) ? props.executeInEditMode : cls._executeInEditMode;
+                        var willExecuteInEditMode =
+                            "executeInEditMode" in props
+                                ? props.executeInEditMode
+                                : cls._executeInEditMode;
                         if (willExecuteInEditMode) {
                             cls._playOnFocus = true;
-                        }
-                        else {
+                        } else {
                             cc.warnID(3601, name);
                         }
                     }
                     break;
 
-                case 'inspector':
-                    js.value(cls, '_inspector', val, true);
+                case "inspector":
+                    js.value(cls, "_inspector", val, true);
                     break;
 
-                case 'icon':
-                    js.value(cls, '_icon', val, true);
+                case "icon":
+                    js.value(cls, "_icon", val, true);
                     break;
 
-                case 'menu':
+                case "menu":
                     Component._addMenuItem(cls, val, props.menuPriority);
                     break;
 
-                case 'requireComponent':
-                case 'executionOrder':
-                case 'disallowMultiple':
+                case "requireComponent":
+                case "executionOrder":
+                case "disallowMultiple":
                     // skip here
                     break;
 
-                case 'help':
+                case "help":
                     cls._help = val;
                     break;
 
@@ -718,6 +730,6 @@ js.value(Component, '_registerEditorProps', function (cls, props) {
     }
 });
 
-Component.prototype.__scriptUuid = '';
+Component.prototype.__scriptUuid = "";
 
 cc.Component = module.exports = Component;
