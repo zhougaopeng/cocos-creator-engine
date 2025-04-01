@@ -172,6 +172,8 @@ var AudioClip = cc.Class({
     },
 
     destroy() {
+        this._audio = null;
+        this._loading = false;
         cc.audioEngine.uncache(this);
         this._super();
     },
