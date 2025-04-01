@@ -21,7 +21,6 @@ if (!isPhantomJS) {
             // play is async
 
             clip.once("load", function () {
-                console.log("audio playing: ", audioSource.isPlaying);
                 strictEqual(
                     audioSource.isPlaying,
                     true,

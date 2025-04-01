@@ -397,12 +397,15 @@ function touchResume() {
         context.resume().catch(console.error);
     }
 }
-document.addEventListener("touchstart", touchResume, {
-    capture: true,
-});
-document.addEventListener("mousedown", touchResume, {
-    capture: true,
-});
+
+if (typeof document !== "undefined") {
+    document.addEventListener("touchstart", touchResume, {
+        capture: true,
+    });
+    document.addEventListener("mousedown", touchResume, {
+        capture: true,
+    });
+}
 
 // Encapsulated WebAudio interface
 let WebAudioElement = function (buffer, audio) {
