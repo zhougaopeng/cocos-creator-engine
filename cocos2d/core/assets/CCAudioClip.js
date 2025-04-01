@@ -24,13 +24,47 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-const Asset = require('./CCAsset');
-const EventTarget = require('../event/event-target');
+const Asset = require("./CCAsset");
+const EventTarget = require("../event/event-target");
 
 var LoadMode = cc.Enum({
     WEB_AUDIO: 0,
     DOM_AUDIO: 1,
 });
+
+function fixedAudioContext(clip, force) {
+    // ios macos ipadOs
+    var sys = cc.sys;
+    if (sys.os === sys.OS_IOS && sys.isBrowser) {
+        var newAudioContext;
+        try {
+            newAudioContext = new (window.AudioContext ||
+                window.webkitAudioContext)();
+        } catch (e) {
+            return false;
+        }
+
+        if (newAudioContext) {
+            var context = sys.__audioSupport.context;
+            if (force || newAudioContext.sampleRate !== context.sampleRate) {
+                clip.destroy();
+                cc.assetManager.releaseAsset(clip);
+                sys.__audioSupport.context = newAudioContext;
+                context.close();
+
+                return true;
+            } else {
+                newAudioContext.close();
+
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    return false;
+}
 
 /**
  * !#en Class for audio data handling.
@@ -40,11 +74,11 @@ var LoadMode = cc.Enum({
  * @uses EventTarget
  */
 var AudioClip = cc.Class({
-    name: 'cc.AudioClip',
+    name: "cc.AudioClip",
     extends: Asset,
     mixins: [EventTarget],
 
-    ctor () {
+    ctor() {
         this._loading = false;
         this.loaded = false;
 
@@ -62,34 +96,38 @@ var AudioClip = cc.Class({
         duration: 0,
         loadMode: {
             default: LoadMode.WEB_AUDIO,
-            type: LoadMode
+            type: LoadMode,
         },
         _nativeAsset: {
-            get () {
+            get() {
                 return this._audio;
             },
-            set (value) {
+            set(value) {
                 // HACK: fix load mp3 as audioClip, _nativeAsset is set as audioClip.
                 // Should load mp3 as audioBuffer indeed.
                 if (value instanceof cc.AudioClip) {
                     this._audio = value._nativeAsset;
-                }
-                else {
+                } else {
                     this._audio = value;
                 }
                 if (this._audio) {
-                    this.emit('load');
+                    this.emit("load");
                 }
             },
-            override: true
+            override: true,
         },
 
         _nativeDep: {
-            get () {
-                return { uuid: this._uuid, audioLoadMode: this.loadMode, ext: cc.path.extname(this._native), __isNative__: true };
+            get() {
+                return {
+                    uuid: this._uuid,
+                    audioLoadMode: this.loadMode,
+                    ext: cc.path.extname(this._native),
+                    __isNative__: true,
+                };
             },
-            override: true
-        }
+            override: true,
+        },
     },
 
     statics: {
@@ -103,39 +141,40 @@ var AudioClip = cc.Class({
                     }
                     callback(null, data);
                 });
-            }
-            else {
+            } else {
                 callback(null, audioClip);
             }
-        }
+        },
     },
 
-    _ensureLoaded (onComplete) {
+    _ensureLoaded(onComplete) {
         if (!this.isValid) {
             return;
         }
+
+        fixedAudioContext(this);
+
         if (this.loaded) {
             return onComplete && onComplete();
-        }
-        else {
+        } else {
             if (onComplete) {
-                this.once('load', onComplete);
+                this.once("load", onComplete);
             }
             if (!this._loading) {
                 this._loading = true;
                 let self = this;
                 cc.assetManager.postLoadNative(this, function (err) {
                     self._loading = false;
-                    if (self._audio) self.emit('load');
+                    if (self._audio) self.emit("load");
                 });
             }
         }
     },
 
-    destroy () {
+    destroy() {
         cc.audioEngine.uncache(this);
         this._super();
-    }
+    },
 });
 
 /**

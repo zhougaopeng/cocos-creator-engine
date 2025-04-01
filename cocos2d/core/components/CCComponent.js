@@ -510,7 +510,7 @@ var Component = cc.Class({
         }
     },
 
-    _onPreDestroy(clear) {
+    _onPreDestroy(options = {}) {
         if (ActionManagerExist) {
             cc.director.getActionManager().removeAllActionsFromTarget(this);
         }
@@ -535,7 +535,7 @@ var Component = cc.Class({
         cc.director._nodeActivator.destroyComp(this);
 
         // do remove component
-        if (clear !== false) {
+        if (options.clearComp !== false) {
             this.node._removeComponent(this);
         }
     },

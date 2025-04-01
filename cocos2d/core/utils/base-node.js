@@ -38,6 +38,8 @@ const Deactivating = Flags.Deactivating;
 const CHILD_ADDED = "child-added";
 const CHILD_REMOVED = "child-removed";
 
+const doNotClearComponents = { clearComp: false };
+
 var idGenerater = new IdGenerater("Node");
 
 function getConstructor(typeOrClassName) {
@@ -1248,7 +1250,7 @@ var BaseNode = cc.Class({
             }
         },
 
-    _onPreDestroy() {
+    _onPreDestroy(options) {
         var i, len;
 
         // marked as destroying
@@ -1265,14 +1267,20 @@ var BaseNode = cc.Class({
         var children = this._children;
         for (i = 0, len = children.length; i < len; ++i) {
             // destroy immediate so its _onPreDestroy can be called
-            children[i]._destroyImmediate();
+            children[i]._destroyImmediate(options);
         }
 
         // destroy self components
         for (i = 0, len = this._components.length; i < len; ++i) {
             var component = this._components[i];
             // destroy immediate so its _onPreDestroy can be called
-            component._destroyImmediate(false);
+            component._destroyImmediate(
+                Object.assign(
+                    Object.create(null),
+                    options,
+                    doNotClearComponents
+                )
+            );
         }
 
         var eventTargets = this.__eventTargets;
@@ -1292,6 +1300,8 @@ var BaseNode = cc.Class({
             if (parent) {
                 var childIndex = parent._children.indexOf(this);
                 parent._children.splice(childIndex, 1);
+                this._parent = null;
+
                 parent.emit && parent.emit("child-removed", this);
             }
         }
@@ -1321,7 +1331,7 @@ BaseNode._stackId = 0;
 BaseNode.prototype._onPreDestroyBase = BaseNode.prototype._onPreDestroy;
 if (CC_EDITOR) {
     BaseNode.prototype._onPreDestroy = function () {
-        var destroyByParent = this._onPreDestroyBase();
+        var destroyByParent = this._onPreDestroyBase({ clearProperties: true });
         if (!destroyByParent) {
             // ensure this node can reattach to scene by undo system
             // (simulate some destruct logic to make undo system work correctly)

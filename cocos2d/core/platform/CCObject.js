@@ -208,12 +208,13 @@ js.value(CCObject, "Flags", {
 
 var objectsToDestroy = [];
 
-function deferredDestroy() {
+function deferredDestroy(clearProperties) {
+    var options = { clearProperties };
     var deleteCount = objectsToDestroy.length;
     for (var i = 0; i < deleteCount; ++i) {
         var obj = objectsToDestroy[i];
         if (!(obj._objFlags & Destroyed)) {
-            obj._destroyImmediate();
+            obj._destroyImmediate(options);
         }
     }
     // if we called b.destroy() in a.onDestroy(), objectsToDestroy will be resized,
@@ -513,19 +514,19 @@ prototype._destruct = function () {
  */
 prototype._onPreDestroy = null;
 
-prototype._destroyImmediate = function (clear) {
+prototype._destroyImmediate = function (options = {}) {
     if (this._objFlags & Destroyed) {
         cc.errorID(5000);
         return;
     }
     // engine internal callback
     if (this._onPreDestroy) {
-        this._onPreDestroy(clear);
+        this._onPreDestroy(options);
     }
 
-    // if ((CC_TEST ? (/* make CC_EDITOR mockable*/ Function('return !CC_EDITOR'))() : !CC_EDITOR) || cc.engine._isPlaying) {
-    //     this._destruct();
-    // }
+    if (options.clearProperties) {
+        this._destruct();
+    }
 
     this._objFlags |= Destroyed;
 };

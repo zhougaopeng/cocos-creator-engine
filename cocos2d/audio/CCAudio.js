@@ -55,38 +55,6 @@ let Audio = function (src) {
 
 cc.js.extend(Audio, EventTarget);
 
-Audio.fixedAudioContext = function (src, force) {
-    // ios macos ipadOs
-    if (sys.os === sys.OS_IOS && sys.isMobile && sys.isBrowser) {
-        var newAudioContext;
-        try {
-            newAudioContext = new (window.AudioContext ||
-                window.webkitAudioContext)();
-        } catch (e) {
-            return false;
-        }
-
-        if (newAudioContext) {
-            var context = sys.__audioSupport.context;
-            if (force || newAudioContext.sampleRate !== context.sampleRate) {
-                // cc.loader.removeItem(src);
-                sys.__audioSupport.context = newAudioContext;
-                context.close();
-
-                return true;
-            } else {
-                newAudioContext.close();
-
-                return false;
-            }
-        }
-
-        return false;
-    }
-
-    return false;
-};
-
 /**
  * !#en Audio state.
  * !#zh 声音播放状态
@@ -394,7 +362,7 @@ if (
         return;
     }
 
-    if (!(sys.os === sys.OS_IOS && sys.isBrowser && sys.isMobile)) {
+    if (!(sys.os === sys.OS_IOS && sys.isBrowser)) {
         return;
     }
 
