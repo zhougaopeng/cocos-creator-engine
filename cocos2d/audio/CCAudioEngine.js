@@ -148,6 +148,8 @@ var audioEngine = {
 
     _id2audio: _id2audio,
 
+    _mute: false,
+
     /**
      * !#en Play audio.
      * !#zh 播放音频
@@ -174,8 +176,7 @@ var audioEngine = {
         clip._ensureLoaded();
         audio._shouldRecycleOnEnded = true;
         audio.setLoop(loop || false);
-        volume = handleVolume(volume);
-        audio.setVolume(volume);
+        audio.setVolume(this._mute ? 0 : handleVolume(volume));
         const playPromise = audio.play();
 
         if (window.Promise && playPromise instanceof Promise) {
@@ -201,6 +202,26 @@ var audioEngine = {
     _triggerNotAutoPlayCallbacks() {
         while (_notAutoPlayCallbacks.length > 0) {
             _notAutoPlayCallbacks.shift()();
+        }
+    },
+
+    mute() {
+        if (this._mute) {
+            return;
+        }
+        this._mute = true;
+        for (var id in _id2audio) {
+            var audio = _id2audio[id];
+            audio.setPrevVolume(audio.getVolume());
+            audio.setVolume(0);
+        }
+    },
+
+    unmute() {
+        this._mute = false;
+        for (var id in _id2audio) {
+            var audio = _id2audio[id];
+            audio.setVolume(audio.getPrevVolume());
         }
     },
 

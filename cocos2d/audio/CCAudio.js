@@ -233,6 +233,14 @@ Audio.State = {
         return this._element ? this._element.loop : false;
     };
 
+    proto.setPrevVolume = function (num) {
+        this._prevVolume = num;
+    };
+
+    proto.getPrevVolume = function () {
+        return this._prevVolume || this.getVolume();
+    };
+
     proto.setVolume = function (num) {
         let self = this;
         this._src &&
