@@ -25,8 +25,8 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-const Audio = require('./CCAudio');
-const AudioClip = require('../core/assets/CCAudioClip');
+const Audio = require("./CCAudio");
+const AudioClip = require("../core/assets/CCAudioClip");
 const js = cc.js;
 
 let _instanceId = 0;
@@ -40,8 +40,15 @@ let recycleAudio = function (audio) {
         return;
     }
     audio._finishCallback = null;
-    audio.off('ended');
-    audio.off('stop');
+    audio.off("ended");
+    audio.off("stop");
+    audio.off("loaded");
+    audio.off("pause");
+    audio.off("play");
+    audio.off("playing");
+    audio.off("resume");
+    audio.off("volume-change");
+    audio.off("time-change");
     audio.src = null;
     if (cc.sys.platform === cc.sys.ALIPAY_GAME) {
         audio.destroy();
@@ -50,8 +57,7 @@ let recycleAudio = function (audio) {
         if (!_audioPool.includes(audio)) {
             if (_audioPool.length < audioEngine._maxPoolSize) {
                 _audioPool.push(audio);
-            }
-            else {
+            } else {
                 audio.destroy();
             }
         }
@@ -83,16 +89,20 @@ let getAudioFromPath = function (path) {
         recycleAudio(this);
     };
 
-    audio.on('ended', function () {
-        if (this._finishCallback) {
-            this._finishCallback();
-        }
-        if(!this.getLoop()){
-            callback.call(this);
-        }
-    }, audio);
+    audio.on(
+        "ended",
+        function () {
+            if (this._finishCallback) {
+                this._finishCallback();
+            }
+            if (!this.getLoop()) {
+                callback.call(this);
+            }
+        },
+        audio
+    );
 
-    audio.on('stop', callback, audio);
+    audio.on("stop", callback, audio);
     audio.id = id;
     _id2audio[id] = audio;
     list.push(id);
@@ -104,12 +114,11 @@ let getAudioFromId = function (id) {
     return _id2audio[id];
 };
 
-let handleVolume  = function (volume) {
+let handleVolume = function (volume) {
     if (volume === undefined) {
         // set default volume as 1
         volume = 1;
-    }
-    else if (typeof volume === 'string') {
+    } else if (typeof volume === "string") {
         volume = Number.parseFloat(volume);
     }
     return volume;
@@ -127,9 +136,11 @@ let handleVolume  = function (volume) {
  * @class audioEngine
  * @static
  */
+var _notAutoPlayCallbacks = [];
 var audioEngine = {
-
     AudioState: Audio.State,
+
+    getAudioFromId,
 
     _maxAudioInstance: 24,
 
@@ -155,7 +166,7 @@ var audioEngine = {
             return;
         }
         if (!(clip instanceof AudioClip)) {
-            return cc.error('Wrong type of AudioClip.');
+            return cc.error("Wrong type of AudioClip.");
         }
         let path = clip.nativeUrl;
         let audio = getAudioFromPath(path);
@@ -165,8 +176,32 @@ var audioEngine = {
         audio.setLoop(loop || false);
         volume = handleVolume(volume);
         audio.setVolume(volume);
-        audio.play();
+        const playPromise = audio.play();
+
+        if (window.Promise && playPromise instanceof Promise) {
+            playPromise.catch(function (err) {
+                if (err.name === "NotAllowedError") {
+                    _triggerNotAutoPlayCallbacks();
+                    return;
+                }
+
+                throw err;
+            });
+        }
+
         return audio.id;
+    },
+
+    setNotAutoPlayCallback(callback) {
+        if (typeof callback !== "function") return;
+        if (_notAutoPlayCallbacks.indexOf(callback) > -1) return;
+        _notAutoPlayCallbacks.push(callback);
+    },
+
+    _triggerNotAutoPlayCallbacks() {
+        while (_notAutoPlayCallbacks.length > 0) {
+            _notAutoPlayCallbacks.shift()();
+        }
     },
 
     /**
@@ -180,8 +215,7 @@ var audioEngine = {
      */
     setLoop: function (audioID, loop) {
         var audio = getAudioFromId(audioID);
-        if (!audio || !audio.setLoop)
-            return;
+        if (!audio || !audio.setLoop) return;
         audio.setLoop(loop);
     },
 
@@ -196,8 +230,7 @@ var audioEngine = {
      */
     isLoop: function (audioID) {
         var audio = getAudioFromId(audioID);
-        if (!audio || !audio.getLoop)
-            return false;
+        if (!audio || !audio.getLoop) return false;
         return audio.getLoop();
     },
 
@@ -246,8 +279,7 @@ var audioEngine = {
         if (audio) {
             audio.setCurrentTime(sec);
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     },
@@ -302,7 +334,7 @@ var audioEngine = {
      * @example
      * cc.audioEngine.isPlaying(audioID);
      */
-    isPlaying: function(audioID) {
+    isPlaying: function (audioID) {
         return this.getState(audioID) === this.AudioState.PLAYING;
     },
 
@@ -317,8 +349,7 @@ var audioEngine = {
      */
     setFinishCallback: function (audioID, callback) {
         var audio = getAudioFromId(audioID);
-        if (!audio)
-            return;
+        if (!audio) return;
         audio._finishCallback = callback;
     },
 
@@ -335,8 +366,7 @@ var audioEngine = {
         if (audio) {
             audio.pause();
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     },
@@ -386,8 +416,7 @@ var audioEngine = {
         for (var i = 0; i < this._pauseIDCache.length; ++i) {
             var id = this._pauseIDCache[i];
             var audio = getAudioFromId(id);
-            if (audio)
-                audio.resume();
+            if (audio) audio.resume();
         }
         this._pauseIDCache.length = 0;
     },
@@ -406,8 +435,7 @@ var audioEngine = {
             // Stop will recycle audio automatically by event callback
             audio.stop();
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     },
@@ -440,8 +468,10 @@ var audioEngine = {
      */
     setMaxAudioInstance: function (num) {
         if (CC_DEBUG) {
-            cc.warn('Since v2.4.0, maxAudioInstance has become a read only property.\n'
-            + 'audioEngine.setMaxAudioInstance() method will be removed in the future');
+            cc.warn(
+                "Since v2.4.0, maxAudioInstance has become a read only property.\n" +
+                    "audioEngine.setMaxAudioInstance() method will be removed in the future"
+            );
         }
     },
 
@@ -467,12 +497,18 @@ var audioEngine = {
      */
     uncache: function (clip) {
         var filePath = clip;
-        if (typeof clip === 'string') {
+        if (typeof clip === "string") {
             // backward compatibility since 1.10
-            cc.warnID(8401, 'cc.audioEngine', 'cc.AudioClip', 'AudioClip', 'cc.AudioClip', 'audio');
+            cc.warnID(
+                8401,
+                "cc.audioEngine",
+                "cc.AudioClip",
+                "AudioClip",
+                "cc.AudioClip",
+                "audio"
+            );
             filePath = clip;
-        }
-        else {
+        } else {
             if (!clip) {
                 return;
             }
@@ -508,7 +544,7 @@ var audioEngine = {
                 audio.destroy();
             }
         }
-        while (audio = _audioPool.pop()) {
+        while ((audio = _audioPool.pop())) {
             audio.destroy();
         }
         _id2audio = js.createMap(true);
@@ -534,8 +570,7 @@ var audioEngine = {
         while (this._breakCache.length > 0) {
             var id = this._breakCache.pop();
             var audio = getAudioFromId(id);
-            if (audio && audio.resume)
-                audio.resume();
+            if (audio && audio.resume) audio.resume();
         }
         this._breakCache = null;
     },
@@ -755,8 +790,7 @@ var audioEngine = {
         for (var i = 0; i < pauseIDCache.length; ++i) {
             var id = pauseIDCache[i];
             var audio = _id2audio[id];
-            if (audio)
-                audio.resume();
+            if (audio) audio.resume();
         }
     },
 
@@ -789,7 +823,7 @@ var audioEngine = {
                 audio.stop();
             }
         }
-    }
+    },
 };
 
 module.exports = cc.audioEngine = audioEngine;

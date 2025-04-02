@@ -156,14 +156,9 @@ Audio.State = {
                 let playPromise = self._element.play();
                 // dom audio throws an error if pause audio immediately after playing
                 if (window.Promise && playPromise instanceof Promise) {
-                    playPromise.catch(function (err) {
-                        // do nothing
-                        if (err.name === "NotAllowedError") {
-                            self.emit("notAutoplay");
-                            return;
-                        }
-
-                        throw err;
+                    return playPromise.then(() => {
+                        self.emit("play");
+                        self.emit("playing");
                     });
                 }
                 self.emit("play");
