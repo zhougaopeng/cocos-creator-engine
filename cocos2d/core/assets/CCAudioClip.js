@@ -47,11 +47,9 @@ function fixedAudioContext(clip, force) {
         if (newAudioContext) {
             var context = sys.__audioSupport.context;
             if (force || newAudioContext.sampleRate !== context.sampleRate) {
-                clip.destroy();
                 cc.assetManager.releaseAsset(clip);
                 sys.__audioSupport.context = newAudioContext;
                 context.close();
-
                 return true;
             } else {
                 newAudioContext.close();
