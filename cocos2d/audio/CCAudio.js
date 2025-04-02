@@ -43,6 +43,8 @@ let Audio = function (src) {
     this._element = null;
     this.id = 0;
     this._state = Audio.State.INITIALZING;
+    this._volume = 1;
+    this._prevVolume = undefined;
 
     const self = this;
     this._onended = function () {
@@ -121,7 +123,7 @@ Audio.State = {
     proto._onLoaded = function () {
         this._createElement();
         this._state = Audio.State.INITIALZING;
-        this.setVolume(1);
+        this.setVolume(1, 1);
         this.setLoop(false);
     };
 
@@ -156,10 +158,19 @@ Audio.State = {
                 let playPromise = self._element.play();
                 // dom audio throws an error if pause audio immediately after playing
                 if (window.Promise && playPromise instanceof Promise) {
-                    return playPromise.then(() => {
-                        self.emit("play");
-                        self.emit("playing");
-                    });
+                    return playPromise
+                        .then(() => {
+                            self.emit("play");
+                            self.emit("playing");
+                        })
+                        .catch((err) => {
+                            if (err.name === "NotAllowedError") {
+                                self.emit("not-auto-play");
+                                return;
+                            }
+
+                            throw err;
+                        });
                 }
                 self.emit("play");
                 self.emit("playing");
@@ -238,19 +249,22 @@ Audio.State = {
     };
 
     proto.getPrevVolume = function () {
-        return this._prevVolume || this.getVolume();
+        return typeof this._prevVolume === "undefined"
+            ? this.getVolume()
+            : this._prevVolume;
     };
 
-    proto.setVolume = function (num) {
+    proto.setVolume = function (volume, volumeFactor = 1) {
+        this._volume = volume;
         let self = this;
         this._src &&
             this._src._ensureLoaded(function () {
-                self._element.volume = num;
+                self._element.volume = volume * volumeFactor;
                 self.emit("volume-change");
             });
     };
     proto.getVolume = function () {
-        return this._element ? this._element.volume : 1;
+        return this._volume;
     };
 
     proto.setCurrentTime = function (num) {

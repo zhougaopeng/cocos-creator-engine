@@ -49,6 +49,7 @@ let recycleAudio = function (audio) {
     audio.off("resume");
     audio.off("volume-change");
     audio.off("time-change");
+    audio.off("not-auto-play");
     audio.src = null;
     if (cc.sys.platform === cc.sys.ALIPAY_GAME) {
         audio.destroy();
@@ -150,6 +151,9 @@ var audioEngine = {
 
     _mute: false,
 
+    // 音量因子
+    _volumeFactor: 1,
+
     /**
      * !#en Play audio.
      * !#zh 播放音频
@@ -176,19 +180,15 @@ var audioEngine = {
         clip._ensureLoaded();
         audio._shouldRecycleOnEnded = true;
         audio.setLoop(loop || false);
-        audio.setVolume(this._mute ? 0 : handleVolume(volume));
-        const playPromise = audio.play();
+        audio.setVolume(
+            this._mute ? 0 : handleVolume(volume),
+            this._volumeFactor
+        );
 
-        if (window.Promise && playPromise instanceof Promise) {
-            playPromise.catch(function (err) {
-                if (err.name === "NotAllowedError") {
-                    _triggerNotAutoPlayCallbacks();
-                    return;
-                }
-
-                throw err;
-            });
-        }
+        audio.once("not-auto-play", () => {
+            _triggerNotAutoPlayCallbacks();
+        });
+        audio.play();
 
         return audio.id;
     },
@@ -213,7 +213,7 @@ var audioEngine = {
         for (var id in _id2audio) {
             var audio = _id2audio[id];
             audio.setPrevVolume(audio.getVolume());
-            audio.setVolume(0);
+            audio.setVolume(0, this._volumeFactor);
         }
     },
 
@@ -221,7 +221,8 @@ var audioEngine = {
         this._mute = false;
         for (var id in _id2audio) {
             var audio = _id2audio[id];
-            audio.setVolume(audio.getPrevVolume());
+            audio.setVolume(audio.getPrevVolume(), this._volumeFactor);
+            audio.setPrevVolume(undefined);
         }
     },
 
@@ -255,6 +256,19 @@ var audioEngine = {
         return audio.getLoop();
     },
 
+    // 设置音量因子
+    setVolumeFactor: function (volumeFactor) {
+        this._volumeFactor = Math.min(Math.max(volumeFactor, 0), 1);
+
+        if (this._mute) {
+            return;
+        }
+
+        for (var id in _id2audio) {
+            var audio = _id2audio[id];
+            audio.setVolume(audio.getVolume(), this._volumeFactor);
+        }
+    },
     /**
      * !#en Set the volume of audio.
      * !#zh 设置音量（0.0 ~ 1.0）。
@@ -265,9 +279,13 @@ var audioEngine = {
      * cc.audioEngine.setVolume(id, 0.5);
      */
     setVolume: function (audioID, volume) {
+        if (this._mute) {
+            return;
+        }
+
         var audio = getAudioFromId(audioID);
         if (audio) {
-            audio.setVolume(volume);
+            audio.setVolume(volume, this._volumeFactor);
         }
     },
 
